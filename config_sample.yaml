@@ -1,0 +1,9 @@
+Devices:
+    - ProductId: "productId" 
+      DeviceName: "devicename"
+      Psk: "psk"
+    - ProductId: "productid" # 子设备test
+      DeviceName: "devicename"
+      Psk: "psk"
+      MQTTHost: "127.0.0.1" # 手动指定链接地址，优先级更高
+URLSuff: "iotcloud.tencentdevices.com" # 通用后缀

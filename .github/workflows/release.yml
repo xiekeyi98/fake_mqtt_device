@@ -1,0 +1,38 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Release binaries
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  release:
+    types: [ created ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  releases-matrix:
+    name: Release Go Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # build and publish in parallel: linux/amd64
+        goos: [linux,darwin,windows]
+        goarch: [amd64,arm64]
+        exclude:
+          - goarch: "arm64"
+            goos: windows
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run check and tests
+        run:  make allcheck
+      - uses: wangyoucao577/go-release-action@v1.20
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goversion: "https://dl.google.com/go/go1.17.linux-amd64.tar.gz"
+          goarch: ${{ matrix.goarch }}
+          project_path: "./"
+          binary_name: "fake_mqtt_device"
+          ldflags: "-s -w"
+          extra_files: LICENSE Readme.md config_sample.yaml
