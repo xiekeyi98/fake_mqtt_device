@@ -42,7 +42,6 @@ func GetActionParams(actionId string) (Param ActionParam, err error) {
 	if err := viper.UnmarshalKey("Actions", &Actions); err != nil {
 		return Param, errors.Cause(err)
 	}
-	logrus.Warnf("actions:[%v]", Actions)
 	for _, v := range Actions {
 		if v.ActionId == actionId {
 			return v.Params, nil
