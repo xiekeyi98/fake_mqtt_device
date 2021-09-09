@@ -28,10 +28,10 @@ func init() {
 		logrus.Infof("search config file.")
 	}
 
-	err := viper.ReadInConfig()
-	if err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		panic(err)
 	}
+	viper.WatchConfig()
 	logrus.Infof("use config file:[%v]", viper.ConfigFileUsed())
 
 	logrus.SetLevel(logrus.TraceLevel)

@@ -1,9 +1,18 @@
 Devices:
-    - ProductId: "productId" 
+    - ProductId: "productId"  # 产品 ID 
+      DeviceName: "devicename" # 设备名称
+      Psk: "psk" # psk 密钥 
+    - ProductId: "productid" 
       DeviceName: "devicename"
       Psk: "psk"
-    - ProductId: "productid" # 子设备test
-      DeviceName: "devicename"
-      Psk: "psk"
-      MQTTHost: "127.0.0.1" # 手动指定链接地址，优先级更高
+      MQTTHost: "127.0.0.1" # 手动指定链接地址，优先级更高,未指定为 "productid.URLsuff"
 URLSuff: "iotcloud.tencentdevices.com" # 通用后缀
+
+
+
+Actions: # Action 信息
+  - ActionId: "test1"
+    Params: # 空，无返回
+  - ActionId: "test2"  # Action 标识符
+    Params:
+      - bar: 0 # Action 参数

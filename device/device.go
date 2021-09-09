@@ -102,6 +102,8 @@ type Payload struct {
 	ClientToken string                 `json:"clientToken"`
 	Params      map[string]interface{} `json:"params"`
 	Timestamp   int64                  `json:"timestamp,omitempty"`
+
+	ActionId string `json:"actionId,omitempty"`
 }
 
 func (resp *DeviceCtx) subAllTopics() error {
