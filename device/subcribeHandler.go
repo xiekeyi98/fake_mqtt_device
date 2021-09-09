@@ -68,7 +68,7 @@ func (resp *DeviceCtx) sendActionReply(clientToken, topic string, actionId strin
 		Method      string                 `json:"method"`
 		ClientToken string                 `json:"clientToken"`
 		Code        int                    `json:"code"`
-		Status      string                 `json"status"`
+		Status      string                 `json:"status"`
 		Response    map[string]interface{} `json:"response"`
 	}
 
