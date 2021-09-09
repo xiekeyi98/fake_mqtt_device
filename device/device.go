@@ -17,6 +17,7 @@ import (
 
 type DeviceInterface interface {
 	Connect() error
+	Disconnect()
 }
 
 type DeviceCtx struct {
@@ -95,6 +96,10 @@ func (resp *DeviceCtx) Connect() error {
 	}
 	logrus.Infof("%s/%s@%s connect succ", resp.ProductId, resp.DeviceName, resp.broker)
 	return nil
+}
+
+func (resp *DeviceCtx) Disconnect() {
+	resp.MQTTClient.Disconnect(2000)
 }
 
 type Payload struct {
