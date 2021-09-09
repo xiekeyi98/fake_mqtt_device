@@ -50,6 +50,7 @@ func main() {
 			logrus.Errorf("err:%v", err)
 		}
 		go deviceCtx.Connect()
+		defer deviceCtx.Disconnect()
 	}
 
 	// 主线程阻塞
