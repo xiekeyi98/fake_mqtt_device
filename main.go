@@ -37,6 +37,7 @@ func init() {
 }
 func main() {
 
+	defer viper.WriteConfigAs("./newconfig_back.yaml")
 	devices, err := config.GetDevices()
 	if err != nil {
 		logrus.Errorf("%+v", err)
@@ -58,5 +59,6 @@ func main() {
 	sig := <-sigs
 	logrus.Infof("receive : %v", sig)
 	logrus.Warnf("exiting")
+	return
 
 }

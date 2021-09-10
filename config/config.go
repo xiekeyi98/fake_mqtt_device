@@ -13,10 +13,11 @@ func init() {
 }
 
 type Device struct {
-	ProductId  string
-	DeviceName string
-	Psk        string
-	MQTTHost   string
+	ProductId     string
+	DeviceName    string
+	Psk           string
+	MQTTHost      string
+	DeviceVersion string
 }
 
 func GetDevices() ([]Device, error) {
@@ -25,6 +26,21 @@ func GetDevices() ([]Device, error) {
 		return devices, errors.Cause(err)
 	}
 	return devices, nil
+}
+
+func GetDevice(ProductId, Devicename string) (*Device, error) {
+	devices, _ := GetDevices()
+	for _, device := range devices {
+		if device.ProductId == ProductId && device.DeviceName == Devicename {
+			return &device, nil
+		}
+	}
+	return nil, errors.New("not found.")
+
+}
+func (d *Device) SetDeviceVersion(version string) {
+	logrus.Infof("set device to new version.")
+	d.DeviceVersion = version
 }
 
 func GetURLSuff() string {
@@ -70,4 +86,17 @@ func GetEvent() (Event, error) {
 		return event, errors.Cause(err)
 	}
 	return event, nil
+}
+
+type OTAConf struct {
+	DownloadingTime time.Duration
+	BurningTime     time.Duration
+}
+
+func GetOTAConf() (OTAConf, error) {
+	conf := OTAConf{}
+	if err := viper.UnmarshalKey("OTA", &conf); err != nil {
+		return conf, errors.Cause(err)
+	}
+	return conf, nil
 }

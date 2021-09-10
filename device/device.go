@@ -98,6 +98,7 @@ func (resp *DeviceCtx) Connect() error {
 	}
 	logrus.Infof("%s/%s@%s connect succ", resp.ProductId, resp.DeviceName, resp.broker)
 	resp.GetStatus()
+	resp.ReportOTAVersion(resp.Device.DeviceVersion)
 	go resp.ReportEvents()
 	return nil
 }
@@ -111,17 +112,31 @@ type Payload struct {
 	ClientToken string                 `json:"clientToken"`
 	Params      map[string]interface{} `json:"params"`
 	Timestamp   int64                  `json:"timestamp,omitempty"`
+	Type        string                 `json:"type"`
 
 	ActionId string `json:"actionId,omitempty"`
 }
 
+func (p *Payload) GetMethodOrType() string {
+	if p.Method != "" {
+		return p.Method
+	}
+	if p.Type != "" {
+		return p.Type
+	}
+
+	logrus.Warnf("not found methd and type. [method=%v][type=%v]", p.Method, p.Type)
+	return ""
+}
+
 func (resp *DeviceCtx) subAllTopics() error {
 	subcribedTopics := []string{
-		fmt.Sprintf("$thing/down/property/%s/%s", resp.ProductId, resp.DeviceName),
-		fmt.Sprintf("$thing/down/service/%s/%s", resp.ProductId, resp.DeviceName),
-		fmt.Sprintf("$thing/down/action/%s/%s", resp.ProductId, resp.DeviceName),
-		fmt.Sprintf("$thing/down/raw/%s/%s", resp.ProductId, resp.DeviceName),
-		fmt.Sprintf("$thing/down/event/%s/%s", resp.ProductId, resp.DeviceName),
+		fmt.Sprintf("$thing/down/property/%s/%s", resp.ProductId, resp.DeviceName), // 物模型属性
+		fmt.Sprintf("$thing/down/service/%s/%s", resp.ProductId, resp.DeviceName),  // 物模型服务
+		fmt.Sprintf("$thing/down/action/%s/%s", resp.ProductId, resp.DeviceName),   // 物模型行为
+		fmt.Sprintf("$thing/down/raw/%s/%s", resp.ProductId, resp.DeviceName),      // 二进制
+		fmt.Sprintf("$thing/down/event/%s/%s", resp.ProductId, resp.DeviceName),    // 事件
+		fmt.Sprintf("$ota/update/%s/%s", resp.ProductId, resp.DeviceName),          // OTA
 	}
 	for _, topic := range subcribedTopics {
 		if err := resp.subTopic(topic); err != nil {

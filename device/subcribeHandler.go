@@ -30,15 +30,13 @@ func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 			"DeviceName": resp.DeviceName,
 		},
 	).Logger
-	switch received.Method {
-	case "report_reply":
-		logrus.Debugf("report_reply,ignore.")
-		return
-	case "event_reply":
-		logrus.Debugf("event_reply,ignore.")
-		return
-	case "get_status_reply":
-		logrus.Debugf("get_status_reply,ignore.")
+
+	switch received.GetMethodOrType() {
+	case "update_firmware":
+		resp.OTAReport(string(message.Payload()))
+	case "report_reply", "event_reply",
+		"get_status_reply", "report_version_rsp":
+		logrus.Debugf("%s,ignore.", received.GetMethodOrType())
 		return
 	case "control":
 		publish(client,
