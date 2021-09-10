@@ -33,23 +33,23 @@ func (resp *DeviceCtx) ReportEvents() {
 
 func (resp *DeviceCtx) reportEvent(eventInfo config.EventInfo) {
 	type sendPayloadStruct struct {
-		Method      string `json:"method"`
-		ClientToken string `json:"clientToken"`
-		//Version     string `json:"version"`
-		EventId string `json:"eventId"`
-		//Type        string                 `json:"type"`
-		Timestamp int64                  `json:"timestamp"`
-		Params    map[string]interface{} `json:"params"`
+		Method      string                 `json:"method"`
+		ClientToken string                 `json:"clientToken"`
+		Version     string                 `json:"version"`
+		EventId     string                 `json:"eventId"`
+		Type        string                 `json:"type"`
+		Timestamp   int64                  `json:"timestamp"`
+		Params      map[string]interface{} `json:"params"`
 	}
 
 	sendPayload := sendPayloadStruct{
 		Method:      "event_post",
 		ClientToken: uuid.New().String(),
-		//Version: "1.0",
-		EventId: eventInfo.EventId,
-		//Type:      eventInfo.EventType,
-		Timestamp: time.Now().UnixNano() / int64(time.Millisecond),
-		Params:    eventInfo.EventParams,
+		Version:     "1.0",
+		EventId:     eventInfo.EventId,
+		Type:        eventInfo.EventType,
+		Timestamp:   time.Now().UnixNano() / int64(time.Millisecond),
+		Params:      eventInfo.EventParams,
 	}
 	stBytes, _ := json.Marshal(sendPayload)
 	topic := fmt.Sprintf("$thing/up/event/%s/%s", resp.ProductId, resp.DeviceName)
