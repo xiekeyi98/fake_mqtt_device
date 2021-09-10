@@ -16,7 +16,7 @@ func (resp *DeviceCtx) ReportEvents() {
 	if err != nil {
 		logrus.Errorf("get events error:%+v", err)
 	}
-	if event.SendInterval <= time.Millisecond {
+	if event.SendInterval < time.Millisecond {
 		logrus.Infof("no event need to be sent.")
 		return
 	}
