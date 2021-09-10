@@ -13,6 +13,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 type DeviceInterface interface {
@@ -82,6 +83,7 @@ func GetDeviceCtx(d config.Device, URLSuff string) (DeviceInterface, error) {
 	}
 	client := mqtt.NewClient(mqttClientOpts)
 	resp.MQTTClient = client
+
 	return &resp, nil
 }
 func (resp *DeviceCtx) Connect() error {
@@ -95,6 +97,7 @@ func (resp *DeviceCtx) Connect() error {
 		return err
 	}
 	logrus.Infof("%s/%s@%s connect succ", resp.ProductId, resp.DeviceName, resp.broker)
+	go resp.ReportEvents()
 	return nil
 }
 
@@ -117,6 +120,7 @@ func (resp *DeviceCtx) subAllTopics() error {
 		fmt.Sprintf("$thing/down/service/%s/%s", resp.ProductId, resp.DeviceName),
 		fmt.Sprintf("$thing/down/action/%s/%s", resp.ProductId, resp.DeviceName),
 		fmt.Sprintf("$thing/down/raw/%s/%s", resp.ProductId, resp.DeviceName),
+		fmt.Sprintf("$thing/down/event/%s/%s", resp.ProductId, resp.DeviceName),
 	}
 	for _, topic := range subcribedTopics {
 		if err := resp.subTopic(topic); err != nil {
@@ -144,7 +148,7 @@ func (resp *DeviceCtx) subTopic(topic string) (err error) {
 
 func publish(client mqtt.Client, topic string, payload interface{}) {
 	token := client.Publish(topic, 1, false, payload)
-	logrus.Debugf("publish response to %v.paylord:%v", topic, payload)
+	logrus.Debugf("publish response to %v.paylord:%v", topic, cast.ToString(payload))
 	token.Wait()
 	if token.Error() != nil {
 		logrus.Warnf("err:%v", token.Error())

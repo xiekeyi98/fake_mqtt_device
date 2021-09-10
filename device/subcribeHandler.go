@@ -34,6 +34,9 @@ func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 	case "report_reply":
 		logrus.Debugf("report_reply,ignore.")
 		return
+	case "event_reply":
+		logrus.Debugf("event_reply,ignore.")
+		return
 	case "control":
 		publish(client,
 			strings.Replace(message.Topic(), "down", "up", 1),
