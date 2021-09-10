@@ -37,6 +37,9 @@ func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 	case "event_reply":
 		logrus.Debugf("event_reply,ignore.")
 		return
+	case "get_status_reply":
+		logrus.Debugf("get_status_reply,ignore.")
+		return
 	case "control":
 		publish(client,
 			strings.Replace(message.Topic(), "down", "up", 1),
@@ -46,7 +49,6 @@ func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 		resp.sendReportProperty(received.ClientToken, changeTopicUP2Down(message.Topic()), received.Params)
 	case "action":
 		resp.sendActionReply(received.ClientToken, changeTopicUP2Down(message.Topic()), received.ActionId)
-
 	default:
 		logger.Warnf("get unsupported method:[%s]", received.Method)
 	}

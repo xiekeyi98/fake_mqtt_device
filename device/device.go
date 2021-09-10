@@ -97,6 +97,7 @@ func (resp *DeviceCtx) Connect() error {
 		return err
 	}
 	logrus.Infof("%s/%s@%s connect succ", resp.ProductId, resp.DeviceName, resp.broker)
+	resp.GetStatus()
 	go resp.ReportEvents()
 	return nil
 }
