@@ -16,3 +16,21 @@ Actions: # Action 信息
   - ActionId: "test2"  # Action 标识符
     Params:
       - bar: 0 # Action 参数
+
+Events:
+  SendInterval: 0s # 每x秒发送一次
+  EventInfos:
+   - EventId: "status_report" # 事件标识符 ID
+     EventType: "info" # 事件类型
+     EventParams: # 事件参数
+       - status: 0 
+         message: "test"  
+   - EventId: "low_voltage" 
+     EventType: "alert" # 告警
+     EventParams: 
+       - voltage: 0.2
+   - EventId: "hardware_fault" 
+     EventType: "fault" # 故障 
+     EventParams: 
+       - name:  "fault"
+         error_code: 1215

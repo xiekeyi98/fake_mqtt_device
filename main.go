@@ -23,16 +23,15 @@ func init() {
 		viper.SetConfigFile(*cfg)
 		logrus.Infof("use config file from command line.")
 	} else {
-		viper.AddConfigPath("./")
+		viper.AddConfigPath(".")
 		viper.SetConfigType("yaml")
 		logrus.Infof("search config file.")
 	}
-
 	if err := viper.ReadInConfig(); err != nil {
 		panic(err)
 	}
-	viper.WatchConfig()
 	logrus.Infof("use config file:[%v]", viper.ConfigFileUsed())
+	viper.WatchConfig()
 
 	logrus.SetLevel(logrus.TraceLevel)
 }
