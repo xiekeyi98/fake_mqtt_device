@@ -2,6 +2,7 @@ Devices:
     - ProductId: "productId"  # 产品 ID 
       DeviceName: "devicename" # 设备名称
       Psk: "psk" # psk 密钥 
+      DeviceVersion: "1.0.0" # 上报的固件版本
     - ProductId: "productid" 
       DeviceName: "devicename"
       Psk: "psk"
@@ -34,3 +35,7 @@ Events:
      EventParams: 
        - name:  "fault"
          error_code: 1215
+
+OTA:
+  DownloadingTime: 10s # 下载时间
+  BurningTime: 5s # 烧录时间
