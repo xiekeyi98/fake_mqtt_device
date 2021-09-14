@@ -29,9 +29,8 @@ func (resp *DeviceCtx) OTAReport(rawmessage string) {
 	}
 	resp.reportDownloading(firmware.Version, OTAConf.DownloadingTime)
 	time.Sleep(time.Second)
-	resp.reportBurning(firmware.Version)
-	logrus.Infof("sleep %v to buring", OTAConf.BurningTime)
-	time.Sleep(OTAConf.BurningTime)
+	resp.reportBurning(firmware.Version, OTAConf.BurningTime)
+	time.Sleep(time.Second)
 	resp.reportDone(firmware.Version)
 	device, err := config.GetDevice(resp.ProductId, resp.DeviceName)
 	if err != nil {
@@ -72,7 +71,7 @@ func (resp *DeviceCtx) reportDownloading(targetVersion string, DownloadingTime t
 		progressReport.Report.Progress.ResultCode = "0"
 		progressReport.Report.Progress.ResultMsg = "succ"
 		progressReport.Report.Version = targetVersion
-		logrus.Infof("report downloading percent :%d", percent)
+		logrus.Debugf("report downloading percent :%d", percent)
 		stBytes, _ := json.Marshal(progressReport)
 		publish(resp.MQTTClient, fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
 		percent += 5
@@ -83,17 +82,31 @@ func (resp *DeviceCtx) reportDownloading(targetVersion string, DownloadingTime t
 	return
 }
 
-func (resp *DeviceCtx) reportBurning(targetVersion string) {
+func (resp *DeviceCtx) reportBurning(targetVersion string, buringTime time.Duration) {
 
 	logrus.Infof("start to report buring.")
-	progressReport := otaReport{}
-	progressReport.Type = "report_progress"
-	progressReport.Report.Progress.State = "burning"
-	progressReport.Report.Progress.ResultCode = "0"
-	progressReport.Report.Progress.ResultMsg = "succ"
-	progressReport.Report.Version = targetVersion
-	stBytes, _ := json.Marshal(progressReport)
-	publish(resp.MQTTClient, fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
+	if buringTime < time.Second {
+		buringTime = time.Second
+	}
+	tic := time.NewTicker(buringTime / 20)
+	defer tic.Stop()
+	percent := 0
+	for range tic.C {
+		progressReport := otaReport{}
+		progressReport.Type = "report_progress"
+		progressReport.Report.Progress.State = "burning"
+		progressReport.Report.Progress.Percent = fmt.Sprintf("%d", percent)
+		progressReport.Report.Progress.ResultCode = "0"
+		progressReport.Report.Progress.ResultMsg = "succ"
+		progressReport.Report.Version = targetVersion
+		stBytes, _ := json.Marshal(progressReport)
+		logrus.Debugf("report buring percent :%d", percent)
+		publish(resp.MQTTClient, fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
+		percent += 5
+		if percent > 100 {
+			break
+		}
+	}
 	return
 }
 
