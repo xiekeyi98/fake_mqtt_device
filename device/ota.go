@@ -43,9 +43,9 @@ func (resp *DeviceCtx) OTAReport(rawmessage string) {
 }
 
 type otaReport struct {
-	Type    string `json:"type"`
-	Version string `json:"version"`
-	Report  struct {
+	Type   string `json:"type"`
+	Report struct {
+		Version  string `json:"version"`
 		Progress struct {
 			State      string `json:"state"`
 			Percent    string `json:"percent,omitempty"`
@@ -71,7 +71,7 @@ func (resp *DeviceCtx) reportDownloading(targetVersion string, DownloadingTime t
 		progressReport.Report.Progress.Percent = fmt.Sprintf("%d", percent)
 		progressReport.Report.Progress.ResultCode = "0"
 		progressReport.Report.Progress.ResultMsg = "succ"
-		progressReport.Version = targetVersion
+		progressReport.Report.Version = targetVersion
 		logrus.Infof("report downloading percent :%d", percent)
 		stBytes, _ := json.Marshal(progressReport)
 		publish(resp.MQTTClient, fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
@@ -91,7 +91,7 @@ func (resp *DeviceCtx) reportBurning(targetVersion string) {
 	progressReport.Report.Progress.State = "burning"
 	progressReport.Report.Progress.ResultCode = "0"
 	progressReport.Report.Progress.ResultMsg = "succ"
-	progressReport.Version = targetVersion
+	progressReport.Report.Version = targetVersion
 	stBytes, _ := json.Marshal(progressReport)
 	publish(resp.MQTTClient, fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
 	return
@@ -105,7 +105,7 @@ func (resp *DeviceCtx) reportDone(targetVersion string) {
 	progressReport.Report.Progress.State = "done"
 	progressReport.Report.Progress.ResultMsg = "succ"
 	progressReport.Report.Progress.ResultCode = "0"
-	progressReport.Version = targetVersion
+	progressReport.Report.Version = targetVersion
 	stBytes, _ := json.Marshal(progressReport)
 	publish(resp.MQTTClient, fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
 }
