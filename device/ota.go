@@ -73,7 +73,7 @@ func (resp *DeviceCtx) reportDownloading(targetVersion string, DownloadingTime t
 		progressReport.Report.Version = targetVersion
 		logrus.Debugf("report downloading percent :%d", percent)
 		stBytes, _ := json.Marshal(progressReport)
-		publish(resp.MQTTClient, fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
+		resp.publish(fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
 		percent += 5
 		if percent > 100 {
 			break
@@ -101,7 +101,7 @@ func (resp *DeviceCtx) reportBurning(targetVersion string, buringTime time.Durat
 		progressReport.Report.Version = targetVersion
 		stBytes, _ := json.Marshal(progressReport)
 		logrus.Debugf("report buring percent :%d", percent)
-		publish(resp.MQTTClient, fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
+		resp.publish(fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
 		percent += 5
 		if percent > 100 {
 			break
@@ -120,5 +120,5 @@ func (resp *DeviceCtx) reportDone(targetVersion string) {
 	progressReport.Report.Progress.ResultCode = "0"
 	progressReport.Report.Version = targetVersion
 	stBytes, _ := json.Marshal(progressReport)
-	publish(resp.MQTTClient, fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
+	resp.publish(fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName), stBytes)
 }

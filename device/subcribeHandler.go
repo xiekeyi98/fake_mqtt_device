@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"testUtils/fakeDevice/clog"
 	"testUtils/fakeDevice/config"
 	"time"
 
@@ -14,41 +15,34 @@ import (
 // 订阅消息的抓手!
 func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 	payloadStr := string(message.Payload())
-	logger := logrus.StandardLogger()
-	logger.Infof("receive: %v", payloadStr)
+	clog.Logger(resp.ctx).Infof("收到消息:%v", payloadStr)
 	var (
 		received = Payload{}
 		sent     = Payload{}
 	)
 
 	if err := json.Unmarshal(message.Payload(), &received); err != nil {
-		logger.Errorf("err:%v", err)
+		clog.Logger(resp.ctx).WithError(err).Errorf("JSON 解码失败")
 	}
-	logger = logger.WithFields(
-		map[string]interface{}{
-			"ProductId":  resp.ProductId,
-			"DeviceName": resp.DeviceName,
-		},
-	).Logger
 
 	switch received.GetMethodOrType() {
 	case "update_firmware":
 		resp.OTAReport(string(message.Payload()))
 	case "report_reply", "event_reply",
 		"get_status_reply", "report_version_rsp":
-		logrus.Debugf("%s,ignore.", received.GetMethodOrType())
+		clog.Logger(resp.ctx).Debugf("收到回复消息[%s]", received.GetMethodOrType())
 		return
 	case "control":
-		publish(client,
+		resp.publish(
 			strings.Replace(message.Topic(), "down", "up", 1),
 			fmt.Sprintf(`{"method":"control_reply","clientToken":"%s","code":0,"status":"succ"}`,
 				sent.ClientToken))
-		logger.Infof("control_reply")
+		clog.Logger(resp.ctx).Infof("发送 control_reply 消息")
 		resp.sendReportProperty(received.ClientToken, changeTopicUP2Down(message.Topic()), received.Params)
 	case "action":
 		resp.sendActionReply(received.ClientToken, changeTopicUP2Down(message.Topic()), received.ActionId)
 	default:
-		logger.Warnf("get unsupported method:[%s]", received.Method)
+		clog.Logger(resp.ctx).Warnf("尚不支持的方法:%s", received.GetMethodOrType())
 	}
 }
 func changeTopicUP2Down(topic string) string {
@@ -62,8 +56,8 @@ func (resp *DeviceCtx) sendReportProperty(clientToken, topic string, Params map[
 	sent.Params = Params
 	sent.Timestamp = time.Now().Unix()
 	stBytes, _ := json.Marshal(sent)
-	publish(resp.MQTTClient, topic, string(stBytes))
-	logrus.Infof("report property")
+	resp.publish(topic, string(stBytes))
+	clog.Logger(resp.ctx).Infof("上报属性信息.")
 }
 
 func (resp *DeviceCtx) sendActionReply(clientToken, topic string, actionId string) {
@@ -88,6 +82,6 @@ func (resp *DeviceCtx) sendActionReply(clientToken, topic string, actionId strin
 		logrus.Warnf("get action err:%v", err)
 	}
 	stBytes, _ := json.Marshal(sent)
-	publish(resp.MQTTClient, topic, string(stBytes))
+	resp.publish(topic, string(stBytes))
 	logrus.Infof("report property")
 }

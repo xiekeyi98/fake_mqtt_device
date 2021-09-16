@@ -1,12 +1,14 @@
 package device
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"testUtils/fakeDevice/clog"
 	"testUtils/fakeDevice/config"
 	"time"
 
@@ -25,6 +27,8 @@ type DeviceCtx struct {
 	MQTTClient mqtt.Client
 
 	config.Device
+	ctx       context.Context
+	cancelCtx context.CancelFunc
 
 	broker   string
 	port     int
@@ -32,6 +36,7 @@ type DeviceCtx struct {
 	token    string
 }
 
+// 生成设备密钥
 func generateDeviceToken(userName, psk string) (string, error) {
 	rawKey, err := base64.StdEncoding.DecodeString(psk)
 	if err != nil {
@@ -46,19 +51,21 @@ func generateDeviceToken(userName, psk string) (string, error) {
 	token = fmt.Sprintf("%s;%s", token, "hmacsha1")
 	return token, nil
 }
-func GetDeviceCtx(d config.Device, URLSuff string) (DeviceInterface, error) {
-	logger := logrus.WithFields(
-		map[string]interface{}{
-			"product_id":  d.ProductId,
-			"device_name": d.DeviceName,
-		},
-	)
+
+// 获取一个设备抽象
+func GetDeviceCtx(ctx context.Context, d config.Device, URLSuff string) (DeviceInterface, error) {
+
+	ctx, cancel := context.WithCancel(ctx)
+	ctx = clog.WithCtx(ctx, "ProductId", d.ProductId)
+	ctx = clog.WithCtx(ctx, "DeviceName", d.DeviceName)
 	rd := rand.Int31n(100)
 	resp := DeviceCtx{
-		Device:   d,
-		broker:   fmt.Sprintf("%s.%s", d.ProductId, URLSuff),
-		port:     1883,
-		userName: fmt.Sprintf("%s%s;%s;%d;%d", d.ProductId, d.DeviceName, "12010126", rd, time.Now().Unix()+10*365*24*3600),
+		ctx:       ctx,
+		cancelCtx: cancel,
+		Device:    d,
+		broker:    fmt.Sprintf("%s.%s", d.ProductId, URLSuff),
+		port:      1883,
+		userName:  fmt.Sprintf("%s%s;%s;%d;%d", d.ProductId, d.DeviceName, "12010126", rd, time.Now().Unix()+10*365*24*3600),
 	}
 	if d.MQTTHost != "" {
 		resp.broker = d.MQTTHost
@@ -75,11 +82,9 @@ func GetDeviceCtx(d config.Device, URLSuff string) (DeviceInterface, error) {
 		SetClientID(fmt.Sprintf("%s%s", d.ProductId, d.DeviceName)).
 		SetUsername(resp.userName).
 		SetPassword(resp.token)
-		//SetDefaultPublishHandler(messagePubHandler)
-	mqttClientOpts.OnConnect = func(client mqtt.Client) {
-	}
+
 	mqttClientOpts.OnConnectionLost = func(client mqtt.Client, err error) {
-		logger.Errorf("Connect lost: %v", err)
+		clog.Logger(resp.ctx).WithError(err).Errorf("connect lost.")
 	}
 	client := mqtt.NewClient(mqttClientOpts)
 	resp.MQTTClient = client
@@ -89,21 +94,27 @@ func GetDeviceCtx(d config.Device, URLSuff string) (DeviceInterface, error) {
 func (resp *DeviceCtx) Connect() error {
 	token := resp.MQTTClient.Connect()
 	if wa, err := token.Wait(), token.Error(); !wa || err != nil {
-		logrus.Errorf("wait err:%v", err)
-		return err
+		clog.Logger(resp.ctx).WithError(err).Errorf("等待 MQTT 完成错误")
+		return errors.Cause(err)
 	}
 	if err := resp.subAllTopics(); err != nil {
-		logrus.Errorf("sub all topics err :%v", err)
-		return err
+		clog.Logger(resp.ctx).WithError(err).Errorf("订阅 topic 失败")
+		return errors.Cause(err)
 	}
-	logrus.Infof("%s/%s@%s connect succ", resp.ProductId, resp.DeviceName, resp.broker)
-	resp.GetStatus()
-	resp.ReportOTAVersion(resp.Device.DeviceVersion)
-	go resp.ReportEvents()
+	clog.Logger(resp.ctx).Infof("连接成功")
+	resp.postConnect()
 	return nil
 }
 
+func (resp *DeviceCtx) postConnect() {
+	resp.GetStatus()
+	resp.ReportOTAVersion(resp.Device.DeviceVersion)
+	go resp.ReportEvents()
+
+}
+
 func (resp *DeviceCtx) Disconnect() {
+	resp.cancelCtx()
 	resp.MQTTClient.Disconnect(2000)
 }
 
@@ -147,26 +158,20 @@ func (resp *DeviceCtx) subAllTopics() error {
 }
 
 func (resp *DeviceCtx) subTopic(topic string) (err error) {
-	logger := logrus.WithFields(
-		map[string]interface{}{
-			"ProductId":  resp.ProductId,
-			"DeviceName": resp.Device,
-		},
-	)
 	token := resp.MQTTClient.Subscribe(topic, 1, resp.subHandler)
 	if wa, err := token.Wait(), token.Error(); !wa || err != nil {
-		logger.Errorf("token.Wait:%v,err:%+v", wa, err)
 		return errors.Cause(err)
 	}
 
 	return nil
 }
 
-func publish(client mqtt.Client, topic string, payload interface{}) {
+func (resp *DeviceCtx) publish(topic string, payload interface{}) {
+	client := resp.MQTTClient
 	token := client.Publish(topic, 1, false, payload)
-	logrus.Debugf("publish response to %v.paylord:%v", topic, cast.ToString(payload))
+	clog.Logger(resp.ctx).WithField("topic", topic).Debugf("发送消息:%s", cast.ToString(payload))
 	token.Wait()
 	if token.Error() != nil {
-		logrus.Warnf("err:%v", token.Error())
+		clog.Logger(resp.ctx).WithError(token.Error()).Errorf("发送消息失败")
 	}
 }
