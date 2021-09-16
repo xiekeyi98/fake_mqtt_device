@@ -19,21 +19,10 @@ var (
 func init() {
 
 	pflag.Parse()
-	if cfg != nil && *cfg != "" {
-		viper.SetConfigFile(*cfg)
-		logrus.Infof("use config file from command line.")
-	} else {
-		viper.AddConfigPath(".")
-		viper.SetConfigType("yaml")
-		logrus.Infof("search config file.")
-	}
-	if err := viper.ReadInConfig(); err != nil {
-		panic(err)
-	}
-	logrus.Infof("use config file:[%v]", viper.ConfigFileUsed())
-	viper.WatchConfig()
-
 	logrus.SetLevel(logrus.TraceLevel)
+	if err := config.InitViper(cfg); err != nil {
+		logrus.WithError(err).Panic("初始化配置文件失败")
+	}
 }
 func main() {
 
