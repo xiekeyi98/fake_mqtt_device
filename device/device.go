@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
+	"golang.org/x/sync/errgroup"
 )
 
 type DeviceInterface interface {
@@ -149,10 +150,15 @@ func (resp *DeviceCtx) subAllTopics() error {
 		fmt.Sprintf("$thing/down/event/%s/%s", resp.ProductId, resp.DeviceName),    // 事件
 		fmt.Sprintf("$ota/update/%s/%s", resp.ProductId, resp.DeviceName),          // OTA
 	}
+	var eg errgroup.Group
 	for _, topic := range subcribedTopics {
-		if err := resp.subTopic(topic); err != nil {
-			return err
-		}
+		cpTopic := topic
+		eg.Go(func() error {
+			return resp.subTopic(cpTopic)
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 	return nil
 }
