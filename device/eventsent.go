@@ -3,29 +3,36 @@ package device
 import (
 	"encoding/json"
 	"fmt"
+	"testUtils/fakeDevice/clog"
 	"testUtils/fakeDevice/config"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 func (resp *DeviceCtx) ReportEvents() {
 
 	event, err := config.GetEvent()
 	if err != nil {
-		logrus.Errorf("get events error:%+v", err)
+		clog.Logger(resp.ctx).WithError(err).Errorf("获取事件配置错误")
+		return
 	}
 	if event.SendInterval < time.Millisecond {
-		logrus.Infof("no event need to be sent.")
+		clog.Logger(resp.ctx).Infof("间隔过短或关闭事件上报，跳过事件上报")
 		return
 	}
 	tic := time.NewTicker(event.SendInterval)
-	logrus.Infof("start to send event every %v", event.SendInterval)
+	clog.Logger(resp.ctx).Infof("开始每 %v 时间上报一次事件", event.SendInterval)
 	defer tic.Stop()
-	for range tic.C {
-		for _, v := range event.EventInfos {
-			resp.reportEvent(v)
+	for {
+		select {
+		case <-tic.C:
+			for _, v := range event.EventInfos {
+				resp.reportEvent(v)
+			}
+		case <-resp.ctx.Done():
+			clog.Logger(resp.ctx).Infof("事件管理因 context 取消结束。")
+			return
 
 		}
 	}
@@ -53,5 +60,5 @@ func (resp *DeviceCtx) reportEvent(eventInfo config.EventInfo) {
 	}
 	stBytes, _ := json.Marshal(sendPayload)
 	topic := fmt.Sprintf("$thing/up/event/%s/%s", resp.ProductId, resp.DeviceName)
-	publish(resp.MQTTClient, topic, stBytes)
+	resp.publish(topic, stBytes)
 }
