@@ -124,8 +124,8 @@ type Payload struct {
 	ClientToken string                 `json:"clientToken"`
 	Params      map[string]interface{} `json:"params"`
 	Timestamp   int64                  `json:"timestamp,omitempty"`
-	Type        string                 `json:"type"`
 
+	Type     string `json:"type,omitempty"`
 	ActionId string `json:"actionId,omitempty"`
 }
 
@@ -143,12 +143,23 @@ func (p *Payload) GetMethodOrType() string {
 
 func (resp *DeviceCtx) subAllTopics() error {
 	subcribedTopics := []string{
+		// ⬇️ 物模型 topic
 		fmt.Sprintf("$thing/down/property/%s/%s", resp.ProductId, resp.DeviceName), // 物模型属性
 		fmt.Sprintf("$thing/down/service/%s/%s", resp.ProductId, resp.DeviceName),  // 物模型服务
 		fmt.Sprintf("$thing/down/action/%s/%s", resp.ProductId, resp.DeviceName),   // 物模型行为
 		fmt.Sprintf("$thing/down/raw/%s/%s", resp.ProductId, resp.DeviceName),      // 二进制
 		fmt.Sprintf("$thing/down/event/%s/%s", resp.ProductId, resp.DeviceName),    // 事件
-		fmt.Sprintf("$ota/update/%s/%s", resp.ProductId, resp.DeviceName),          // OTA
+
+		// ⬇️ 系统 Topic
+		fmt.Sprintf("$ota/update/%s/%s", resp.ProductId, resp.DeviceName),              // OTA
+		fmt.Sprintf("$broadcast/rxd/%s/%s", resp.ProductId, resp.DeviceName),           // 广播消息
+		fmt.Sprintf("$shadow/operation/result/%s/%s", resp.ProductId, resp.DeviceName), // 设备影子
+		fmt.Sprintf("$rrpc/rxd/%s/%s/+", resp.ProductId, resp.DeviceName),              // RRPC
+		fmt.Sprintf("$sys/operation/result/%s/%s/+", resp.ProductId, resp.DeviceName),  // ntp
+
+		// ⬇️ 自定义 topic
+		fmt.Sprintf("%s/%s/data", resp.ProductId, resp.DeviceName),
+		fmt.Sprintf("%s/%s/control", resp.ProductId, resp.DeviceName),
 	}
 	var eg errgroup.Group
 	for _, topic := range subcribedTopics {

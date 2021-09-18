@@ -9,7 +9,6 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/sirupsen/logrus"
 )
 
 // 订阅消息的抓手!
@@ -29,9 +28,13 @@ func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 	case "update_firmware":
 		resp.OTAReport(string(message.Payload()))
 	case "report_reply", "event_reply",
-		"get_status_reply", "report_version_rsp":
+		"report_version_rsp":
 		clog.Logger(resp.ctx).Debugf("收到回复消息[%s]", received.GetMethodOrType())
 		return
+	case "get_status_reply":
+		clog.Logger(resp.ctx).Debugf("收到 get_status_reply 消息,主动上报一次当前状态。")
+		resp.sendReportProperty(received.ClientToken, changeTopicUP2Down(message.Topic()), resp.getStatusReplyReportedParams(string(message.Payload())))
+
 	case "control":
 		resp.publish(
 			strings.Replace(message.Topic(), "down", "up", 1),
@@ -79,9 +82,28 @@ func (resp *DeviceCtx) sendActionReply(clientToken, topic string, actionId strin
 	sent.Status = "succ"
 	sent.Response, err = config.GetActionParams(actionId)
 	if err != nil {
-		logrus.Warnf("get action err:%v", err)
+		clog.Logger(resp.ctx).WithError(err).Warnf("获取 ActionId 失败")
 	}
 	stBytes, _ := json.Marshal(sent)
 	resp.publish(topic, string(stBytes))
-	logrus.Infof("report property")
+	clog.Logger(resp.ctx).Infof("上报 action_reply 消息。")
+}
+
+func (resp *DeviceCtx) getStatusReplyReportedParams(getStatusReply string) map[string]interface{} {
+	type statusReply struct {
+		Method      string `json:"method"`
+		ClientToken string `json:"clientToken`
+		Code        int    `json:"code"`
+		Status      string `json:"status"`
+		Type        string `json:"report"`
+		Data        struct {
+			Report map[string]interface{} `json:"reported"`
+		} `json:"data"`
+	}
+	reply := statusReply{}
+	if err := json.Unmarshal([]byte(getStatusReply), &reply); err != nil {
+		clog.Logger(resp.ctx).WithError(err).Warnf("JSON 反序列化失败")
+	}
+	return reply.Data.Report
+
 }
