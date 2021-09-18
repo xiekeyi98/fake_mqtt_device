@@ -92,7 +92,7 @@ func (resp *DeviceCtx) sendActionReply(clientToken, topic string, actionId strin
 func (resp *DeviceCtx) getStatusReplyReportedParams(getStatusReply string) map[string]interface{} {
 	type statusReply struct {
 		Method      string `json:"method"`
-		ClientToken string `json:"clientToken`
+		ClientToken string `json:"clientToken"`
 		Code        int    `json:"code"`
 		Status      string `json:"status"`
 		Type        string `json:"report"`
