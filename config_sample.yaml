@@ -1,31 +1,35 @@
 Devices:
-    - ProductId: "productId"  # 产品 ID 
-      DeviceName: "devicename" # 设备名称
-      Psk: "psk" # psk 密钥 
-      DeviceVersion: "1.0.0" # 上报的固件版本
-    - ProductId: "productid" 
+      # 第一个设备
+    - ProductId: "productId"  # 产品 ID ，必选
+      DeviceName: "devicename" # 设备名称，必选
+      Psk: "psk" # psk 密钥 ,必选
+      DeviceVersion: "1.0.0" # 上报的固件版本，可选。注意上报的与实际的不一样可能出错。
+      # 第二个设备
+    - ProductId: "productid"  
       DeviceName: "devicename"
       Psk: "psk"
-      MQTTHost: "127.0.0.1" # 手动指定链接地址，优先级更高,未指定为 "productid.URLsuff"
+      MQTTHost: "127.0.0.1" # 手动指定链接地址，优先级更高,需要每个设备单独指定，未指定会使用 "productid.URLsuff"
 URLSuff: "iotcloud.tencentdevices.com" # 通用后缀
 
 
 
+# 可选 Action 信息，如果使用 Action 需要填写。
 Actions: # Action 信息
-  - ActionId: "test1"
-    Params: # 空，无返回
+  - ActionId: "test1" # Action 的标识符 Id
+    Params: # Action 的返回参数。空，无返回
   - ActionId: "test2"  # Action 标识符
     Params:
       - bar: 0 # Action 参数
 
+# 可选事件上报信息，如果使用事件需要填写。
 Events:
-  SendInterval: 0s # 每x秒发送一次
+  SendInterval: 0s # 每x秒发送一次,0是不开启。
   EventInfos:
    - EventId: "status_report" # 事件标识符 ID
      EventType: "info" # 事件类型
      EventParams: # 事件参数
-       - status: 0 
-         message: "test"  
+       - status: 0  # 参数1 
+         message: "test"  # 参数2
    - EventId: "low_voltage" 
      EventType: "alert" # 告警
      EventParams: 
@@ -36,6 +40,7 @@ Events:
        - name:  "fault"
          error_code: 1215
 
+# OTA 升级
 OTA:
   DownloadingTime: 10s # 下载时间
   BurningTime: 5s # 烧录时间

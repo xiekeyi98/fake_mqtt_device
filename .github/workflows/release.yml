@@ -30,7 +30,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
-          goversion: "https://dl.google.com/go/go1.17.linux-amd64.tar.gz"
+          goversion: "https://dl.google.com/go/go1.17.1.linux-amd64.tar.gz"
           goarch: ${{ matrix.goarch }}
           md5sum: false # 不需要 md5 校验文件
           project_path: "./"
