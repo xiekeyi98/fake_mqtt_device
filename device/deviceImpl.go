@@ -5,18 +5,14 @@ import (
 	"fmt"
 	"testUtils/fakeDevice/clog"
 	"testUtils/fakeDevice/config"
+	"testUtils/fakeDevice/utils"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
 )
-
-type DeviceInterface interface {
-	Connect() error
-	Disconnect()
-}
 
 // 设备连接的上下文
 type DeviceCtx struct {
@@ -44,6 +40,7 @@ func GetDeviceCtx(ctx context.Context, d config.Device) (DeviceInterface, error)
 
 	mqttClientOpts := mqtt.
 		NewClientOptions().
+		SetOrderMatters(false).
 		AddBroker(fmt.Sprintf("tcp://%s:%d", mqttDSN.Broker, mqttDSN.Port)).
 		SetClientID(fmt.Sprintf("%s%s", d.ProductId, d.DeviceName)).
 		SetUsername(mqttDSN.UserName).
@@ -148,11 +145,13 @@ func (resp *DeviceCtx) subTopic(topic string) (err error) {
 	return nil
 }
 
-func (resp *DeviceCtx) publish(topic string, payload interface{}) {
+func (resp *DeviceCtx) Publish(topic string, payload []byte) {
 	client := resp.mqttClient
 	token := client.Publish(topic, 1, false, payload)
-	clog.Logger(resp.ctx).WithField("topic", topic).Debugf("发送消息:%s", cast.ToString(payload))
-	token.Wait()
+	clog.Logger(resp.ctx).WithField("topic", topic).Debugf("发送消息:\n%s\n", utils.GetPrettyJSONStr(string(payload)))
+	if notTimeout := token.WaitTimeout(time.Second * 2); !notTimeout {
+		clog.Logger(resp.ctx).Warnf("发送消息超时.")
+	}
 	if token.Error() != nil {
 		clog.Logger(resp.ctx).WithError(token.Error()).Errorf("发送消息失败")
 	}

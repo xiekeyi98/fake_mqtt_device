@@ -45,7 +45,7 @@ func main() {
 		errG.Go(deviceCtx.Connect)
 	}
 	if err := errG.Wait(); err != nil {
-		logrus.Errorf("err:%+v", err)
+		logrus.Errorf("建立设备连接失败:%+v", err)
 	}
 
 	// 主线程阻塞
