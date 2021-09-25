@@ -12,6 +12,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -34,13 +35,17 @@ func main() {
 		return
 	}
 	devicesCtx := make([]device.DeviceInterface, 0, len(devices))
+	var errG errgroup.Group
 	for _, v := range devices {
-		deviceCtx, err := device.GetDeviceCtx(context.Background(), v, config.GetURLSuff())
+		deviceCtx, err := device.GetDeviceCtx(context.Background(), v)
 		if err != nil {
-			logrus.Errorf("err:%v", err)
+			logrus.Errorf("err:%+v", err)
 		}
 		devicesCtx = append(devicesCtx, deviceCtx)
-		go deviceCtx.Connect()
+		errG.Go(deviceCtx.Connect)
+	}
+	if err := errG.Wait(); err != nil {
+		logrus.Errorf("err:%+v", err)
 	}
 
 	// 主线程阻塞
@@ -49,9 +54,9 @@ func main() {
 	sig := <-sigs
 	logrus.Infof("收到信号: %v", sig)
 	for _, v := range devicesCtx {
-		v.Disconnect()
+		go v.Disconnect()
 	}
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 300)
 	logrus.Warnf("退出")
 	return
 

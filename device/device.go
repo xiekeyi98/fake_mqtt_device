@@ -2,15 +2,9 @@ package device
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"testUtils/fakeDevice/clog"
 	"testUtils/fakeDevice/config"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/pkg/errors"
@@ -24,76 +18,47 @@ type DeviceInterface interface {
 	Disconnect()
 }
 
+// 设备连接的上下文
 type DeviceCtx struct {
-	MQTTClient mqtt.Client
+	mqttClient mqtt.Client // MQTT 客户端
 
-	config.Device
+	config.Device // 设备的配置
+
 	ctx       context.Context
 	cancelCtx context.CancelFunc
-
-	broker   string
-	port     int
-	userName string
-	token    string
 }
 
-// 生成设备密钥
-func generateDeviceToken(userName, psk string) (string, error) {
-	rawKey, err := base64.StdEncoding.DecodeString(psk)
-	if err != nil {
-		return "", errors.Cause(err)
-	}
-	h := hmac.New(sha1.New, rawKey)
-	_, err = h.Write([]byte(userName))
-	if err != nil {
-		return "", errors.Cause(err)
-	}
-	token := hex.EncodeToString(h.Sum(nil))
-	token = fmt.Sprintf("%s;%s", token, "hmacsha1")
-	return token, nil
-}
-
-// 获取一个设备抽象
-func GetDeviceCtx(ctx context.Context, d config.Device, URLSuff string) (DeviceInterface, error) {
-
+func GetDeviceCtx(ctx context.Context, d config.Device) (DeviceInterface, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	ctx = clog.WithCtx(ctx, "ProductId", d.ProductId)
 	ctx = clog.WithCtx(ctx, "DeviceName", d.DeviceName)
-	rd := rand.Int31n(100)
 	resp := DeviceCtx{
 		ctx:       ctx,
 		cancelCtx: cancel,
 		Device:    d,
-		broker:    fmt.Sprintf("%s.%s", d.ProductId, URLSuff),
-		port:      1883,
-		userName:  fmt.Sprintf("%s%s;%s;%d;%d", d.ProductId, d.DeviceName, "12010126", rd, time.Now().Unix()+10*365*24*3600),
 	}
-	if d.MQTTHost != "" {
-		resp.broker = d.MQTTHost
-	}
-	if token, err := generateDeviceToken(resp.userName, resp.Psk); err != nil {
+	mqttDSN, err := d.GetMQTTDSN()
+	if err != nil {
 		return nil, err
-	} else {
-		resp.token = token
 	}
 
 	mqttClientOpts := mqtt.
 		NewClientOptions().
-		AddBroker(fmt.Sprintf("tcp://%s:%d", resp.broker, resp.port)).
+		AddBroker(fmt.Sprintf("tcp://%s:%d", mqttDSN.Broker, mqttDSN.Port)).
 		SetClientID(fmt.Sprintf("%s%s", d.ProductId, d.DeviceName)).
-		SetUsername(resp.userName).
-		SetPassword(resp.token)
+		SetUsername(mqttDSN.UserName).
+		SetPassword(mqttDSN.Token)
 
 	mqttClientOpts.OnConnectionLost = func(client mqtt.Client, err error) {
 		clog.Logger(resp.ctx).WithError(err).Errorf("connect lost.")
 	}
 	client := mqtt.NewClient(mqttClientOpts)
-	resp.MQTTClient = client
-
+	resp.mqttClient = client
 	return &resp, nil
 }
+
 func (resp *DeviceCtx) Connect() error {
-	token := resp.MQTTClient.Connect()
+	token := resp.mqttClient.Connect()
 	if wa, err := token.Wait(), token.Error(); !wa || err != nil {
 		clog.Logger(resp.ctx).WithError(err).Errorf("等待 MQTT 完成错误")
 		return errors.Cause(err)
@@ -116,7 +81,7 @@ func (resp *DeviceCtx) postConnect() {
 
 func (resp *DeviceCtx) Disconnect() {
 	resp.cancelCtx()
-	resp.MQTTClient.Disconnect(2000)
+	resp.mqttClient.Disconnect(2000)
 }
 
 type Payload struct {
@@ -175,7 +140,7 @@ func (resp *DeviceCtx) subAllTopics() error {
 }
 
 func (resp *DeviceCtx) subTopic(topic string) (err error) {
-	token := resp.MQTTClient.Subscribe(topic, 1, resp.subHandler)
+	token := resp.mqttClient.Subscribe(topic, 1, resp.subHandler)
 	if wa, err := token.Wait(), token.Error(); !wa || err != nil {
 		return errors.Cause(err)
 	}
@@ -184,7 +149,7 @@ func (resp *DeviceCtx) subTopic(topic string) (err error) {
 }
 
 func (resp *DeviceCtx) publish(topic string, payload interface{}) {
-	client := resp.MQTTClient
+	client := resp.mqttClient
 	token := client.Publish(topic, 1, false, payload)
 	clog.Logger(resp.ctx).WithField("topic", topic).Debugf("发送消息:%s", cast.ToString(payload))
 	token.Wait()
