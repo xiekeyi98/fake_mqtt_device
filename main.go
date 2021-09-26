@@ -20,7 +20,7 @@ var (
 )
 
 func init() {
-
+	logrus.Infof("Powered by keyixie.")
 	pflag.Parse()
 	logrus.SetLevel(logrus.TraceLevel)
 	if err := config.InitViper(cfg); err != nil {
