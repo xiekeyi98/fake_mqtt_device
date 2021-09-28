@@ -24,10 +24,9 @@ jobs:
             goos: windows
     steps:
       - uses: actions/checkout@v2
-      - name: Run check and tests
-        run:  make allcheck
       - uses: wangyoucao577/go-release-action@v1.20
         with:
+          pre_command: make allcheck
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goversion: "https://dl.google.com/go/go1.17.1.linux-amd64.tar.gz"
