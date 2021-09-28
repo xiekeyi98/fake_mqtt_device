@@ -16,16 +16,49 @@ import (
 // 订阅消息的抓手!
 func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 	payloadStr := string(message.Payload())
-	clog.Logger(resp.ctx).Infof("收到消息:\n%v\n", utils.GetPrettyJSONStr(payloadStr))
-	var (
-		received = Payload{}
-		sent     = Payload{}
-	)
+	newCtx := clog.WithCtx(resp.ctx, "topic", message.Topic())
+	if resp.IsSystemTopic(message.Topic()) {
+		clog.Logger(newCtx).Infof("收到消息:\n%v\n", utils.GetPrettyJSONStr(payloadStr))
+	} else {
+		clog.Logger(newCtx).Infof("收到非系统 topic 消息:[%s]", payloadStr)
+		return
+	}
 
+	if resp.Device.IsShadow() {
+		resp.HandlerIoTHubProtocol(message)
+	} else {
+		resp.HandlerExplorerProtocol(message)
+	}
+
+}
+
+func (resp *DeviceCtx) HandlerIoTHubProtocol(message mqtt.Message) {
+	var (
+		received = shadowPayload{}
+	)
 	if err := json.Unmarshal(message.Payload(), &received); err != nil {
 		clog.Logger(resp.ctx).WithError(err).Errorf("JSON 解码失败")
 	}
+	switch received.Type {
+	case "update_firmware":
+		ota.NewOTATask(resp.ctx, resp.ProductId, resp.DeviceName, resp).OTAFirmwareUpdate(string(message.Payload()))
+	case "get":
+		resp.OnShadowDown(received)
+	case "update":
+		resp.OnShadowDown(received)
+	default:
+		clog.Logger(resp.ctx).Warnf("尚不支持的方法:%s", received.Type)
+	}
+}
 
+func (resp *DeviceCtx) HandlerExplorerProtocol(message mqtt.Message) {
+	var (
+		received = ExplorerPayload{}
+		sent     = ExplorerPayload{}
+	)
+	if err := json.Unmarshal(message.Payload(), &received); err != nil {
+		clog.Logger(resp.ctx).WithError(err).Errorf("JSON 解码失败")
+	}
 	switch received.GetMethodOrType() {
 	case "update_firmware":
 		ota.NewOTATask(resp.ctx, resp.ProductId, resp.DeviceName, resp).OTAFirmwareUpdate(string(message.Payload()))
@@ -51,12 +84,13 @@ func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 		clog.Logger(resp.ctx).Warnf("尚不支持的方法:%s", received.GetMethodOrType())
 	}
 }
+
 func changeTopicUP2Down(topic string) string {
 	return strings.Replace(topic, "down", "up", 1)
 }
 
 func (resp *DeviceCtx) sendReportProperty(clientToken, topic string, Params map[string]interface{}) {
-	sent := Payload{}
+	sent := ExplorerPayload{}
 	sent.ClientToken = clientToken
 	sent.Method = "report"
 	sent.Params = Params
@@ -108,5 +142,10 @@ func (resp *DeviceCtx) getStatusReplyReportedParams(getStatusReply string) map[s
 		clog.Logger(resp.ctx).WithError(err).Warnf("JSON 反序列化失败")
 	}
 	return reply.Data.Report
+
+}
+
+func (resp *DeviceCtx) IsSystemTopic(topic string) bool {
+	return strings.HasPrefix(topic, "$")
 
 }
