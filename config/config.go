@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/google/wire"
@@ -28,6 +29,15 @@ type Device struct {
 	Psk           string
 	MQTTHost      string
 	DeviceVersion string
+
+	Protocol string
+}
+
+func (d *Device) IsShadow() bool {
+	if strings.Contains(d.Protocol, "shadow") {
+		return true
+	}
+	return false
 }
 
 func (d *Device) GetMQTTDSN() (*MQTTDSN, error) {

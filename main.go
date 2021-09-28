@@ -10,6 +10,7 @@ import (
 	"testUtils/fakeDevice/device"
 	"time"
 
+	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/sync/errgroup"
@@ -20,7 +21,9 @@ var (
 )
 
 func init() {
-	logrus.Infof("Powered by keyixie.")
+	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
+	logrus.SetOutput(colorable.NewColorableStdout())
+	logrus.Infof("Powered by keyixie.[see at github:https://github.com/xiekeyi98/fake_mqtt_device]")
 	pflag.Parse()
 	logrus.SetLevel(logrus.TraceLevel)
 	if err := config.InitViper(cfg); err != nil {
