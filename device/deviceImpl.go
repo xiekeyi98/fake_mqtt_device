@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testUtils/fakeDevice/clog"
 	"testUtils/fakeDevice/config"
+	"testUtils/fakeDevice/device/shadow"
 	"testUtils/fakeDevice/utils"
 	"time"
 
@@ -22,6 +23,8 @@ type DeviceCtx struct {
 
 	ctx       context.Context
 	cancelCtx context.CancelFunc
+
+	shadow shadow.ShadowInfo
 }
 
 func GetDeviceCtx(ctx context.Context, d config.Device) (DeviceInterface, error) {
@@ -64,15 +67,21 @@ func (resp *DeviceCtx) Connect() error {
 		clog.Logger(resp.ctx).WithError(err).Errorf("订阅 topic 失败")
 		return errors.Cause(err)
 	}
-	clog.Logger(resp.ctx).Infof("连接成功")
+	clog.Logger(resp.ctx).Infof("连接并订阅 topic 成功。")
 	resp.postConnect()
 	return nil
 }
 
 func (resp *DeviceCtx) postConnect() {
-	resp.GetStatus()
-	resp.ReportOTAVersion(resp.Device.DeviceVersion)
-	go resp.ReportEvents()
+	if resp.Device.IsShadow() {
+		clog.Logger(resp.ctx).Debugf("使用 hub 影子协议")
+		resp.ShadowGet()
+	} else {
+		resp.GetStatus()
+		resp.ReportOTAVersion(resp.Device.DeviceVersion)
+		go resp.ReportEvents()
+
+	}
 
 }
 
@@ -81,7 +90,7 @@ func (resp *DeviceCtx) Disconnect() {
 	resp.mqttClient.Disconnect(2000)
 }
 
-type Payload struct {
+type ExplorerPayload struct {
 	Method      string                 `json:"method"`
 	ClientToken string                 `json:"clientToken"`
 	Params      map[string]interface{} `json:"params"`
@@ -91,7 +100,7 @@ type Payload struct {
 	ActionId string `json:"actionId,omitempty"`
 }
 
-func (p *Payload) GetMethodOrType() string {
+func (p *ExplorerPayload) GetMethodOrType() string {
 	if p.Method != "" {
 		return p.Method
 	}
