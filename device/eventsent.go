@@ -60,5 +60,5 @@ func (resp *DeviceCtx) reportEvent(eventInfo config.EventInfo) {
 	}
 	stBytes, _ := json.Marshal(sendPayload)
 	topic := fmt.Sprintf("$thing/up/event/%s/%s", resp.ProductId, resp.DeviceName)
-	resp.publish(topic, stBytes)
+	resp.Publish(topic, stBytes)
 }

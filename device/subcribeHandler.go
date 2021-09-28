@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testUtils/fakeDevice/clog"
 	"testUtils/fakeDevice/config"
+	"testUtils/fakeDevice/device/ota"
+	"testUtils/fakeDevice/utils"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -14,7 +16,7 @@ import (
 // 订阅消息的抓手!
 func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 	payloadStr := string(message.Payload())
-	clog.Logger(resp.ctx).Infof("收到消息:%v", payloadStr)
+	clog.Logger(resp.ctx).Infof("收到消息:\n%v\n", utils.GetPrettyJSONStr(payloadStr))
 	var (
 		received = Payload{}
 		sent     = Payload{}
@@ -26,7 +28,8 @@ func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 
 	switch received.GetMethodOrType() {
 	case "update_firmware":
-		resp.OTAReport(string(message.Payload()))
+		ota.NewOTATask(resp.ctx, resp.ProductId, resp.DeviceName, resp).OTAFirmwareUpdate(string(message.Payload()))
+		//resp.OTAReport(string(message.Payload()))
 	case "report_reply", "event_reply",
 		"report_version_rsp":
 		clog.Logger(resp.ctx).Debugf("收到回复消息[%s]", received.GetMethodOrType())
@@ -36,10 +39,10 @@ func (resp *DeviceCtx) subHandler(client mqtt.Client, message mqtt.Message) {
 		resp.sendReportProperty(received.ClientToken, changeTopicUP2Down(message.Topic()), resp.getStatusReplyReportedParams(string(message.Payload())))
 
 	case "control":
-		resp.publish(
+		resp.Publish(
 			strings.Replace(message.Topic(), "down", "up", 1),
-			fmt.Sprintf(`{"method":"control_reply","clientToken":"%s","code":0,"status":"succ"}`,
-				sent.ClientToken))
+			[]byte(fmt.Sprintf(`{"method":"control_reply","clientToken":"%s","code":0,"status":"succ"}`,
+				sent.ClientToken)))
 		clog.Logger(resp.ctx).Infof("发送 control_reply 消息")
 		resp.sendReportProperty(received.ClientToken, changeTopicUP2Down(message.Topic()), received.Params)
 	case "action":
@@ -59,7 +62,7 @@ func (resp *DeviceCtx) sendReportProperty(clientToken, topic string, Params map[
 	sent.Params = Params
 	sent.Timestamp = time.Now().Unix()
 	stBytes, _ := json.Marshal(sent)
-	resp.publish(topic, string(stBytes))
+	resp.Publish(topic, stBytes)
 	clog.Logger(resp.ctx).Infof("上报属性信息.")
 }
 
@@ -85,7 +88,7 @@ func (resp *DeviceCtx) sendActionReply(clientToken, topic string, actionId strin
 		clog.Logger(resp.ctx).WithError(err).Warnf("获取 ActionId 失败")
 	}
 	stBytes, _ := json.Marshal(sent)
-	resp.publish(topic, string(stBytes))
+	resp.Publish(topic, stBytes)
 	clog.Logger(resp.ctx).Infof("上报 action_reply 消息。")
 }
 

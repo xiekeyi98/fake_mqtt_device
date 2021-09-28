@@ -1,23 +1,78 @@
 package config
 
 import (
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/hex"
+	"fmt"
+	"math/rand"
 	"time"
 
+	"github.com/google/wire"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
+var Provider = wire.NewSet(GetDevices)
+
 func init() {
 	viper.SetDefault("URLSuff", "iotcloud.tencentdevices.com")
 }
 
+// 设备配置信息
 type Device struct {
 	ProductId     string
 	DeviceName    string
 	Psk           string
 	MQTTHost      string
 	DeviceVersion string
+}
+
+func (d *Device) GetMQTTDSN() (*MQTTDSN, error) {
+	rd := rand.Int31n(100)
+	res := &MQTTDSN{
+		Broker:   fmt.Sprintf("%s.%s", d.ProductId, d.GetURLSuff()),
+		Port:     1883,
+		UserName: fmt.Sprintf("%s%s;%s;%d;%d", d.ProductId, d.DeviceName, "12010126", rd, time.Now().Unix()+24*3600),
+	}
+	if d.MQTTHost != "" {
+		res.Broker = d.MQTTHost
+	}
+	token, err := res.GetDeviceToken(d.Psk)
+	if err != nil {
+		return nil, err
+	}
+	res.Token = token
+	return res, nil
+}
+
+func (m *MQTTDSN) GetDeviceToken(deicePsk string) (string, error) {
+	if m.Token != "" {
+		return m.Token, nil
+	}
+	rawKey, err := base64.StdEncoding.DecodeString(deicePsk)
+	if err != nil {
+		return "", errors.Cause(err)
+	}
+	h := hmac.New(sha1.New, rawKey)
+	_, err = h.Write([]byte(m.UserName))
+	if err != nil {
+		return "", errors.Cause(err)
+	}
+	token := hex.EncodeToString(h.Sum(nil))
+	token = fmt.Sprintf("%s;%s", token, "hmacsha1")
+	m.Token = token
+	return token, nil
+
+}
+
+type MQTTDSN struct {
+	Broker   string
+	Port     int
+	UserName string
+	Token    string
 }
 
 func GetDevices() ([]Device, error) {
@@ -29,7 +84,7 @@ func GetDevices() ([]Device, error) {
 }
 
 func GetDevice(ProductId, Devicename string) (*Device, error) {
-	devices, _ := GetDevices()
+	devices, _ := GetDevices() // performance
 	for _, device := range devices {
 		if device.ProductId == ProductId && device.DeviceName == Devicename {
 			return &device, nil
@@ -43,9 +98,8 @@ func (d *Device) SetDeviceVersion(version string) {
 	d.DeviceVersion = version
 }
 
-func GetURLSuff() string {
-	URLSuff := viper.GetString("URLSuff")
-	return URLSuff
+func (d *Device) GetURLSuff() string {
+	return viper.GetString("URLSuff")
 }
 
 type Actions struct {

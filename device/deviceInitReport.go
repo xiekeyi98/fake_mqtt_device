@@ -26,7 +26,7 @@ func (resp *DeviceCtx) GetStatus() {
 	stBytes, _ := json.Marshal(sendPayload)
 	topic := fmt.Sprintf("$thing/up/property/%s/%s", resp.ProductId, resp.DeviceName)
 	clog.Logger(resp.ctx).Infof("获取设备状态(get_status)")
-	resp.publish(topic, stBytes)
+	resp.Publish(topic, stBytes)
 }
 
 func (resp *DeviceCtx) ReportOTAVersion(version string) {
@@ -51,5 +51,5 @@ func (resp *DeviceCtx) ReportOTAVersion(version string) {
 	stBytes, _ := json.Marshal(sendPayload)
 	topic := fmt.Sprintf("$ota/report/%s/%s", resp.ProductId, resp.DeviceName)
 	clog.Logger(resp.ctx).Infof("上报 OTA 版本 %s", version)
-	resp.publish(topic, stBytes)
+	resp.Publish(topic, stBytes)
 }
