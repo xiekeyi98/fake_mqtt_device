@@ -41,6 +41,7 @@ func GetDeviceCtx(ctx context.Context, d config.Device) (DeviceInterface, error)
 		return nil, err
 	}
 
+	clog.Logger(resp.ctx).Debugf("链接 DSN :%+v", mqttDSN)
 	mqttClientOpts := mqtt.
 		NewClientOptions().
 		SetOrderMatters(false).
@@ -60,7 +61,8 @@ func GetDeviceCtx(ctx context.Context, d config.Device) (DeviceInterface, error)
 func (resp *DeviceCtx) Connect() error {
 	token := resp.mqttClient.Connect()
 	if wa, err := token.Wait(), token.Error(); !wa || err != nil {
-		clog.Logger(resp.ctx).WithError(err).Errorf("等待 MQTT 完成错误")
+		clog.Logger(resp.ctx).
+			WithError(err).Errorf("等待 MQTT 完成错误")
 		return errors.Cause(err)
 	}
 	if err := resp.subAllTopics(); err != nil {

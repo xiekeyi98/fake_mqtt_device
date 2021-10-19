@@ -8,16 +8,19 @@ import (
 	"testUtils/fakeDevice/clog"
 	"testUtils/fakeDevice/config"
 	"testUtils/fakeDevice/device"
+	"testUtils/fakeDevice/utils"
 	"time"
 
 	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 )
 
 var (
-	cfg = pflag.StringP("config", "c", "", "config file path.")
+	cfg     = pflag.StringP("config", "c", "", "config file path.")
+	verbose = pflag.BoolP("verbose", "v", false, "verbose output")
 )
 
 func init() {
@@ -25,10 +28,16 @@ func init() {
 	logrus.SetOutput(colorable.NewColorableStdout())
 	logrus.Infof("Powered by keyixie.[see at github:https://github.com/xiekeyi98/fake_mqtt_device]")
 	pflag.Parse()
-	logrus.SetLevel(logrus.TraceLevel)
+	logrus.SetLevel(logrus.InfoLevel)
+	if verbose != nil && *verbose {
+		logrus.Infof("use verbose mode.")
+		logrus.SetLevel(logrus.TraceLevel)
+
+	}
 	if err := config.InitViper(cfg); err != nil {
 		clog.Logger().WithError(err).Panic(err)
 	}
+	logrus.Debugf("完整配置：%s", utils.GetPrettyJSON(viper.AllSettings()))
 }
 func main() {
 
@@ -48,7 +57,7 @@ func main() {
 		errG.Go(deviceCtx.Connect)
 	}
 	if err := errG.Wait(); err != nil {
-		logrus.Errorf("建立设备连接失败:%+v", err)
+		logrus.WithError(err).Errorf("建立设备连接失败:%+v", err)
 	}
 
 	// 主线程阻塞
