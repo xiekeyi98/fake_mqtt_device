@@ -7,15 +7,8 @@
 
 ## 安装
 
-### 命令行一键安装
-
-`curl -sSfL https://raw.githubusercontent.com/xiekeyi98/fake_mqtt_device/master/install.sh | sh -s -- -b $(pwd)/fake_mqtt_device`
-
 ### 手动安装 
 右侧 Release 处下载自己对应平台的压缩包。
-
-MacOS Intel 版对应 darwin-amd64
-MacOS M1 版对应 darwin-arm64
 
 # 使用方法
 
