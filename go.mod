@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
+	github.com/apex/log v1.9.0
 	github.com/eclipse/paho.mqtt.golang v1.3.5
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/google/uuid v1.3.0

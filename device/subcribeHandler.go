@@ -65,7 +65,6 @@ func (resp *DeviceCtx) HandlerExplorerProtocol(message mqtt.Message) {
 		//resp.OTAReport(string(message.Payload()))
 	case "report_reply", "event_reply",
 		"report_version_rsp":
-		clog.Logger(resp.ctx).Debugf("收到回复消息[%s]", received.GetMethodOrType())
 		return
 	case "get_status_reply":
 		clog.Logger(resp.ctx).Debugf("收到 get_status_reply 消息,主动上报一次当前状态。")

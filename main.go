@@ -26,7 +26,7 @@ var (
 func init() {
 	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
 	logrus.SetOutput(colorable.NewColorableStdout())
-	logrus.Infof("Powered by keyixie.[see at github:https://github.com/xiekeyi98/fake_mqtt_device]")
+	clog.Logger().Infof("Powered by keyixie.[see at github:https://github.com/xiekeyi98/fake_mqtt_device]")
 	pflag.Parse()
 	logrus.SetLevel(logrus.InfoLevel)
 	if verbose != nil && *verbose {
@@ -37,7 +37,7 @@ func init() {
 	if err := config.InitViper(cfg); err != nil {
 		clog.Logger().WithError(err).Panic(err)
 	}
-	logrus.Debugf("完整配置：%s", utils.GetPrettyJSON(viper.AllSettings()))
+	clog.Logger().Debugf("完整配置：%s", utils.GetPrettyJSON(viper.AllSettings()))
 }
 func main() {
 
@@ -51,25 +51,25 @@ func main() {
 	for _, v := range devices {
 		deviceCtx, err := device.GetDeviceCtx(context.Background(), v)
 		if err != nil {
-			logrus.Errorf("err:%+v", err)
+			clog.Logger().Errorf("err:%+v", err)
 		}
 		devicesCtx = append(devicesCtx, deviceCtx)
 		errG.Go(deviceCtx.Connect)
 	}
 	if err := errG.Wait(); err != nil {
-		logrus.WithError(err).Errorf("建立设备连接失败:%+v", err)
+		clog.Logger().WithError(err).Errorf("建立设备连接失败:%+v", err)
 	}
 
 	// 主线程阻塞
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigs
-	logrus.Infof("收到信号: %v", sig)
+	clog.Logger().Infof("收到信号: %v", sig)
 	for _, v := range devicesCtx {
 		go v.Disconnect()
 	}
 	time.Sleep(time.Millisecond * 300)
-	logrus.Warnf("退出")
+	clog.Logger().Warnf("退出")
 	return
 
 }
