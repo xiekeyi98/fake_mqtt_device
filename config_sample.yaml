@@ -3,13 +3,15 @@ Devices:
     - ProductId: "productId"  # 产品 ID ，必选
       DeviceName: "devicename" # 设备名称，必选
       Psk: "psk" # psk 密钥 ,必选
-      DeviceVersion: "1.0.0" # 上报的固件版本，可选。注意上报的与实际的不一样可能出错。
+    # MQTTHost: "127.0.0.1" # 手动指定链接地址，优先级更高,需要每个设备单独指定，未指定会使用 "productid.URLsuff"
       # 第二个设备
-    - ProductId: "productid"  
-      DeviceName: "devicename"
-      Psk: "psk"
-      MQTTHost: "127.0.0.1" # 手动指定链接地址，优先级更高,需要每个设备单独指定，未指定会使用 "productid.URLsuff"
-URLSuff: "iotcloud.tencentdevices.com" # 通用后缀
+    # - ProductId: "productid"  
+    #   DeviceName: "devicename"
+    #   Psk: "psk"
+    #   DeviceVersion: "1.0.0" # 上报的固件版本，可选。注意上报的与实际的不一样可能出错。
+    #   MQTTHost: "127.0.0.1" # 手动指定链接地址，优先级更高,需要每个设备单独指定，未指定会使用 "productid.URLsuff"
+
+#URLSuff: "iotcloud.tencentdevices.com"
 
 
 
