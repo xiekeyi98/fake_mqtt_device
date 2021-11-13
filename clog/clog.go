@@ -11,7 +11,7 @@ const (
 	ctxMapKey = "ctxMap"
 )
 
-var mut sync.Mutex
+var mut sync.RWMutex
 
 func WithCtx(ctx context.Context, key string, value interface{}) context.Context {
 	mut.Lock()
@@ -27,7 +27,8 @@ func WithCtx(ctx context.Context, key string, value interface{}) context.Context
 }
 
 func Logger(ctxOpt ...context.Context) *logrus.Entry {
-
+	mut.RLock()
+	defer mut.RUnlock()
 	if len(ctxOpt) != 1 {
 		return logrus.WithContext(context.TODO())
 	}
