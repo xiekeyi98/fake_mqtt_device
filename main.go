@@ -69,7 +69,7 @@ func main() {
 		go v.Disconnect()
 	}
 	time.Sleep(time.Millisecond * 300)
-	clog.Logger().Warnf("退出")
+	clog.Logger().Warnf("退出。帮助与反馈 -> %s", "[https://github.com/xiekeyi98/fake_mqtt_device/issues/new]")
 	return
 
 }
