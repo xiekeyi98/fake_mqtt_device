@@ -14,11 +14,12 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
+	github.com/spf13/afero v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.9.0
-	golang.org/x/net v0.0.0-20211123203042-d83791d6bcd9 // indirect
+	github.com/spf13/viper v1.10.1
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881 // indirect
+	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	gopkg.in/ini.v1 v1.64.0 // indirect
+	gopkg.in/ini.v1 v1.66.4 // indirect
 )

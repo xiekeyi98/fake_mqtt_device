@@ -19,10 +19,12 @@ func (s *ShadowInfo) GetVersion() int {
 	return s.Version
 }
 
-type shadowState struct {
-	Reported map[string]interface{} `json:"reported,omitempty"`
-	Desired  map[string]interface{} `json:"desired,omitempty"`
-}
+type shadowState map[string]interface{}
+
+//type shadowState struct {
+//	Reported map[string]interface{} `json:"reported,omitempty"`
+//	Desired  map[string]interface{} `json:"desired,omitempty"`
+//}
 
 type metadataState struct {
 	Reported map[string]interface{} `json:"reported,omitempty"`

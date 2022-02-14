@@ -22,9 +22,7 @@ func (resp *DeviceCtx) OnShadowDown(payload shadowPayload) {
 		clog.Logger(resp.ctx).Warnf("影子处理错误，错误码: %d", payload.Result)
 	}
 	resp.shadow = payload.Payload
-	if resp.shadow.State.Desired != nil {
-		resp.ShadowReport(payload.Payload)
-	}
+	resp.ShadowReport(payload.Payload)
 }
 
 func (resp *DeviceCtx) ShadowGet() {
@@ -45,7 +43,7 @@ func (resp *DeviceCtx) ShadowReport(reportedShadow shadow.ShadowInfo) {
 		Version:     reportedShadow.Version,
 		ClientToken: uuid.NewString(),
 	}
-	shadowInfoReported.State.Reported = reportedShadow.State.Desired
+	shadowInfoReported.State = reportedShadow.State
 	jsonBytes, err := json.Marshal(shadowInfoReported)
 	if err != nil {
 		clog.Logger(resp.ctx).Warnf("err:%v", err)

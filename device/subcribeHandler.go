@@ -44,7 +44,7 @@ func (resp *DeviceCtx) HandlerIoTHubProtocol(message mqtt.Message) {
 		ota.NewOTATask(resp.ctx, resp.ProductId, resp.DeviceName, resp).OTAFirmwareUpdate(string(message.Payload()))
 	case "get":
 		resp.OnShadowDown(received)
-	case "update":
+	case "delta":
 		resp.OnShadowDown(received)
 	default:
 		clog.Logger(resp.ctx).Warnf("尚不支持的方法:%s", received.Type)
